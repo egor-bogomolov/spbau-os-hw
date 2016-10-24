@@ -1,8 +1,15 @@
-#include <desc.h>
-#include <ints.h>
+#include "desc.h"
+#include "ints.h"
+#include "print.h"
+#include "backtrace.h"
 #include "serial.h"
 #include "interrupt.h"
 #include "timer.h"
+#include "memmap.h"
+#include "buddy.h"
+#include "slab.h"
+#include "paging.h"
+#include "test.h"
 
 
 static void qemu_gdb_hang(void)
@@ -24,15 +31,18 @@ void main(void)
 
 	qemu_gdb_hang();
 
-	puts("Initialization..");
 	init();
-	puts("Done");
+	init_timer(0xFFFF);
+
+	get_memory_map();
+	print_memory_map();
+
+	init_buddy();
+	init_paging();
+	init_slab_allocator();
 	
-	__asm__ volatile("int $255"); // nothing
-	__asm__ volatile("int $39"); // master
-	__asm__ volatile("int $40"); // slave + master
-	init_timer(0xFF);
-	
+	test_buddy();
+	test_slab();
 	
 	while (1);
 }

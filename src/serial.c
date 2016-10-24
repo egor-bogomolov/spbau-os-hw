@@ -39,3 +39,10 @@ void puts(const char *s) {
 	}
 	putc('\n');
 }
+
+void serial_write(const char *s, size_t size) {
+	while(size--) {
+		putc(*s);
+		++s;
+	}
+}

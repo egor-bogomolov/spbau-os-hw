@@ -100,15 +100,15 @@ void slave_eoi(void) {
 }
 
 void handler(uint64_t ind) {
-	puts("Trying to handle..");
+//	puts("Trying to handle..");
 	if (32 <= ind && ind < 40) {
-		puts("Master");
+	//	puts("Master");
 		master_eoi();
 	}
 	if (40 <= ind && ind < 48) {
-		puts("Slave");
+	//	puts("Slave");
 		master_eoi();
 		slave_eoi();
 	}
-	puts("Done.");
+//	puts("Done.");
 } 
