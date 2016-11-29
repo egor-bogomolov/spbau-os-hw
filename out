@@ -1,116 +1,18 @@
-Initialization..
-Done
-Trying to handle..
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Slave
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-Trying to handle..
-Master
-Done.
-T
+./src/my_threads.o:(.data+0x4): multiple definition of `size'
+./src/threads.o:(.data+0x4): first defined here
+./src/my_threads.o: In function `create_thread':
+/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/my_threads.c:15: multiple definition of `create_thread'
+./src/threads.o:/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/threads.c:20: first defined here
+./src/my_threads.o: In function `run':
+/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/my_threads.c:37: multiple definition of `run'
+./src/threads.o:/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/threads.c:42: first defined here
+./src/my_threads.o: In function `free_thread':
+/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/my_threads.c:50: multiple definition of `free_thread'
+./src/threads.o:/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/threads.c:68: first defined here
+./src/my_threads.o: In function `yield':
+/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/my_threads.c:58: multiple definition of `yield'
+./src/threads.o:/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/threads.c:54: first defined here
+./src/my_threads.o: In function `finish_thread':
+/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/my_threads.c:66: multiple definition of `finish_thread'
+./src/threads.o:/home/egor/Work/AU/3/OS/src/spbau-os-hw/src/threads.c:62: first defined here
+make: *** [kernel] Error 1

@@ -1,48 +1,47 @@
-#include "serial.h"
-#include "ioport.h"
+#include <serial.h>
+#include <ioport.h>
 
-#define BASE_PORT 0x3F8
+#define SERIAL_BASE_PORT	0x3f8
+#define SERIAL_PORT(x)		(SERIAL_BASE_PORT + (x))
+#define REG_DATA		SERIAL_PORT(0)
+#define REG_DLL			SERIAL_PORT(0)
+#define REG_IER			SERIAL_PORT(1)
+#define REG_DLH			SERIAL_PORT(1)
+#define REG_LCR			SERIAL_PORT(3)
+#define REG_LSR			SERIAL_PORT(5)
 
-#define INT_PORT (BASE_PORT + 1)
-#define SPEED_PORT_L (BASE_PORT + 0)
-#define SPEED_PORT_H (BASE_PORT + 1)
-#define INFO_PORT (BASE_PORT + 3)
-#define STATUS_PORT (BASE_PORT + 5)
-#define IO_PORT (BASE_PORT + 0)
+#define LCR_8BIT		(3 << 0)
+#define LCR_DLAB		(1 << 7)
+#define LSR_TX_READY		(1 << 5)
 
-#define DIV_ON (1 << 7)
-#define INT_OFF 0
-#define SERIAL_INFO 3
-#define SPEED 0x000C
 
-#define CAN_WRITE (1 << 5)
-
-#define LAST8 0xFF
-
-void init_serial(void) {
-	out8(INFO_PORT, DIV_ON);
-	out8(SPEED_PORT_L, SPEED & LAST8);
-	out8(SPEED_PORT_H, (SPEED >> 8) & LAST8);
-	out8(INFO_PORT, SERIAL_INFO);
-	out8(INT_PORT, INT_OFF);
+void serial_setup(void)
+{
+	/* Step by step explanation:
+	 *   1. i want to disable interrupt, in order to do that i need access
+	 *      to the IER, before writing IER we need to drop DLAB bit in the
+	 *      LCR, so at first i write 0 to LCR, and then write 0 to IER; */
+	out8(REG_LCR, 0);
+	out8(REG_IER, 0);
+	/*   2. now i want to set speed, let say, to 9600 baud,
+	 *      115200/9600 = 12 - is our divisor, but before setting divisor,
+	 *      we need to set DLAB bit in the LCR; */
+	out8(REG_LCR, LCR_DLAB);
+	out8(REG_DLL, 0x0C);
+	out8(REG_DLH, 0x00);
+	/*   3. finally i want to set frame format, there is no tricky parts
+	 *      here. */
+	out8(REG_LCR, LCR_8BIT);
 }
 
-void putc(char c) {
-	out8(IO_PORT, c);
-	while(!(in8(CAN_WRITE & STATUS_PORT)));
+void serial_putchar(int c)
+{
+	while (!(in8(REG_LSR) & LSR_TX_READY));
+	out8(REG_DATA, c);
 }
 
-void puts(const char *s) {
-	while(*s) {
-		putc(*s);
-		++s;
-	}
-	putc('\n');
-}
-
-void serial_write(const char *s, size_t size) {
-	while(size--) {
-		putc(*s);
-		++s;
-	}
+void serial_write(const char *buf, size_t size)
+{
+	for (size_t i = 0; i != size; ++i)
+		serial_putchar(buf[i]);
 }

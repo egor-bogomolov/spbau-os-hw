@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-void init_backtrace(uint64_t *main_frame_address_);
-void print_backtrace(void);
+void __backtrace(uintptr_t rbp, uintptr_t stack_begin, uintptr_t stack_end);
+uintptr_t stack_begin(void);
+uintptr_t stack_end(void);
+void backtrace(void);
 
-#endif
+#endif /*__BACKTRACE_H__*/
