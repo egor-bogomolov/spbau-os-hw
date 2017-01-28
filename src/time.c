@@ -37,17 +37,21 @@ static void pit_set_frequency(unsigned long freq)
 
 	out8(PIT_CMD, cmd);
 	out8(PIT_CH0_DATA, div & 0xff);
-	out8(PIT_CH0_DATA, (div >> 8) & 0x00);
+	out8(PIT_CH0_DATA, (div >> 8) & 0xff);
 }
+
+static unsigned long long jiffies;
 
 static void pit_handler(int irq, struct frame *frame)
 {
 	(void) irq;
 	(void) frame;
-
-//	printf("tick!\n"); //check if interrupts are enabled after tests
-	yield();
+	++jiffies;
+	schedule();
 }
+
+unsigned long long current_time(void)
+{ return jiffies; }
 
 void time_setup(void)
 {

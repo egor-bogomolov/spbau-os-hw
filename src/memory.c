@@ -2,7 +2,6 @@
 #include <string.h>
 #include <balloc.h>
 #include <debug.h>
-#include <lock.h>
 
 #define PAGE_FREE_OFFS	8
 #define PAGE_FREE_MASK	(1ul << PAGE_FREE_OFFS)
@@ -75,6 +74,7 @@ static void __page_alloc_zone_setup(uintptr_t zbegin, uintptr_t zend)
 
 	printf("page alloc zone [0x%llx; 0x%llx]\n", (unsigned long long)begin,
 				(unsigned long long)end);
+	spin_setup(&zone->lock);
 	memset(zone->pages, 0, sizeof(struct page) * (zone->end - zone->end));
 	zone->begin = begin;
 	zone->end = end;
@@ -147,17 +147,14 @@ struct page *addr_page(uintptr_t addr)
 
 static void __page_alloc_zone_free(uintptr_t zbegin, uintptr_t zend)
 {
-	lock();
 	const uintptr_t page_mask = ~((uintptr_t)PAGE_MASK);
 	const uintptr_t begin_addr = (zbegin + PAGE_SIZE - 1) & page_mask;
 	const uintptr_t end_addr = zend & page_mask;
 	const uintptr_t begin = begin_addr ? begin_addr >> PAGE_SHIFT : 1;
 	const uintptr_t end = end_addr >> PAGE_SHIFT;
 
-	if (begin >= end) {
-		unlock();
+	if (begin >= end)
 		return;
-	}
 
 	struct page_alloc_zone *zone = page_alloc_zone_find(begin);
 
@@ -183,7 +180,6 @@ static void __page_alloc_zone_free(uintptr_t zbegin, uintptr_t zend)
 		page_set_free(ptr);
 		page += pages;
 	}
-	unlock();
 }
 
 static void page_alloc_zone_dump(const struct page_alloc_zone *zone)
@@ -234,18 +230,15 @@ void page_alloc_setup(void)
 	}
 }
 
-static struct page *page_alloc_zone(struct page_alloc_zone *zone, int order)
+static struct page *__page_alloc_zone(struct page_alloc_zone *zone, int order)
 {
-	lock();
 	int current = order;
 
 	while (list_empty(&zone->order[current]) && current <= MAX_ORDER)
 		++current;
 
-	if (current > MAX_ORDER) {
-		unlock();
+	if (current > MAX_ORDER)
 		return 0;
-	}
 
 	BUG_ON(list_empty(&zone->order[current]));
 
@@ -266,45 +259,43 @@ static struct page *page_alloc_zone(struct page_alloc_zone *zone, int order)
 		page_set_free(buddy);
 	}
 
-	unlock();
+	return page;
+}
+
+static struct page *page_alloc_zone(struct page_alloc_zone *zone, int order)
+{
+	const int enable = spin_lock_irqsave(&zone->lock);
+	struct page *page = __page_alloc_zone(zone, order);
+
+	spin_unlock_irqrestore(&zone->lock, enable);
 	return page;
 }
 
 struct page *__page_alloc(int order)
 {
-	lock();
-	if (order > MAX_ORDER) {
-		unlock();	
+	if (order > MAX_ORDER)
 		return 0;
-	}
-
 
 	struct list_head *head = &page_alloc_zones;
 	struct list_head *ptr;
-	
+
 	for (ptr = head->next; ptr != head; ptr = ptr->next) {
 		struct page_alloc_zone *zone = CONTAINER_OF(ptr,
 					struct page_alloc_zone, ll);
 		struct page *page = page_alloc_zone(zone, order);
 
-		if (page) {
-			unlock();
+		if (page)
 			return page;
-		}
 	}
 
-	unlock();
 	return 0;
 }
 
 uintptr_t page_alloc(int order)
 {
-	lock();
-	if (order > MAX_ORDER) {
-		unlock();
+	if (order > MAX_ORDER)
 		return 0;
-	}
-	
+
 	struct list_head *head = &page_alloc_zones;
 	struct list_head *ptr;
 
@@ -317,18 +308,16 @@ uintptr_t page_alloc(int order)
 			continue;
 
 		const uintptr_t index = zone->begin + (page - zone->pages);
-		
-		unlock();
+
 		return index << PAGE_SHIFT;
 	}
-	unlock();
+
 	return 0;
 }
 
-static void page_free_zone(struct page_alloc_zone *zone, struct page *page,
+static void __page_free_zone(struct page_alloc_zone *zone, struct page *page,
 			int order)
 {
-	lock();
 	uintptr_t idx = zone->begin + (page - zone->pages);
 
 	BUG_ON(idx & ((1ull << order) - 1));
@@ -357,17 +346,22 @@ static void page_free_zone(struct page_alloc_zone *zone, struct page *page,
 
 	page_set_order(page, order);
 	page_set_free(page);
-	unlock();
+}
+
+static void page_free_zone(struct page_alloc_zone *zone, struct page *page,
+			int order)
+{
+	const int enable = spin_lock_irqsave(&zone->lock);
+
+	__page_free_zone(zone, page, order);
+	spin_unlock_irqrestore(&zone->lock, enable);
 }
 
 void page_free(uintptr_t addr, int order)
 {
-	lock();
-	if (!addr) {
-		unlock();
+	if (!addr)
 		return;
-	}	
-	
+
 	const uintptr_t idx = addr >> PAGE_SHIFT;
 	struct page_alloc_zone *zone = page_alloc_zone_find(idx);
 
@@ -376,18 +370,14 @@ void page_free(uintptr_t addr, int order)
 	struct page *page = &zone->pages[idx - zone->begin];
 
 	page_free_zone(zone, page, order);
-	unlock();
 }
 
 void __page_free(struct page *page, int order)
 {
-	lock();
-	if (!page) {
-		unlock();
+	if (!page)
 		return;
-	}
+
 	struct page_alloc_zone *zone = page_zone(page);
 
 	page_free_zone(zone, page, order);
-	unlock();
 }

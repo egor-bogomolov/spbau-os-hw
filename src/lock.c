@@ -1,4 +1,5 @@
 #include "lock.h"
+#include "print.h"
 
 volatile int cnt_locks = 0; //one thread can use multiple locks
 

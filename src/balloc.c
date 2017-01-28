@@ -1,7 +1,6 @@
 #include <balloc.h>
 #include <memory.h>
 #include <debug.h>
-#include <lock.h>
 
 
 struct mboot_info {
@@ -47,7 +46,6 @@ static void balloc_free_node(struct memory_node *node)
 static void __balloc_add_range(struct rb_tree *tree,
 			unsigned long long from, unsigned long long to)
 {
-	lock();
 	struct rb_node **plink = &tree->root;
 	struct rb_node *parent = 0;
 
@@ -86,13 +84,11 @@ static void __balloc_add_range(struct rb_tree *tree,
 		rb_erase(&next->link.rb, tree);
 		balloc_free_node(next);
 	}
-	unlock();
 }
 
 static void __balloc_remove_range(struct rb_tree *tree,
 			unsigned long long from, unsigned long long to)
 {
-	lock();
 	struct rb_node *link = tree->root;
 	struct memory_node *ptr = 0;
 
@@ -119,13 +115,11 @@ static void __balloc_remove_range(struct rb_tree *tree,
 		balloc_free_node(ptr);
 		ptr = next;
 	}
-	unlock();
 }
 
 uintptr_t __balloc_alloc(size_t size, uintptr_t align,
 			uintptr_t from, uintptr_t to)
 {
-	lock();
 	struct rb_tree *tree = &free_ranges;
 	struct rb_node *link = tree->root;
 	struct memory_node *ptr = 0;
@@ -155,14 +149,12 @@ uintptr_t __balloc_alloc(size_t size, uintptr_t align,
 			if (ptr->end > addr + size)
 				__balloc_add_range(tree, addr + size, ptr->end);
 			balloc_free_node(ptr);
-			unlock();
 			return addr;
 		}
 
 		ptr = RB2MEMORY_NODE(rb_next(&ptr->link.rb));
 	}
 
-	unlock();
 	return to;
 }
 
@@ -182,9 +174,7 @@ uintptr_t balloc_alloc(size_t size, uintptr_t from, uintptr_t to)
 
 void balloc_free(uintptr_t begin, uintptr_t end)
 {
-	lock();
 	__balloc_add_range(&free_ranges, begin, end);
-	unlock();
 }
 
 
